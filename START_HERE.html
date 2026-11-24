@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>Mining Energy ETL and Forecasting</title>
+  <style>
+    html {
+      color: #1a1a1a;
+      background-color: #fdfdfd;
+    }
+    body {
+      margin: 0 auto;
+      max-width: 36em;
+      padding-left: 50px;
+      padding-right: 50px;
+      padding-top: 50px;
+      padding-bottom: 50px;
+      hyphens: auto;
+      overflow-wrap: break-word;
+      text-rendering: optimizeLegibility;
+      font-kerning: normal;
+    }
+    @media (max-width: 600px) {
+      body {
+        font-size: 0.9em;
+        padding: 12px;
+      }
+      h1 {
+        font-size: 1.8em;
+      }
+    }
+    @media print {
+      html {
+        background-color: white;
+      }
+      body {
+        background-color: transparent;
+        color: black;
+        font-size: 12pt;
+      }
+      p, h2, h3 {
+        orphans: 3;
+        widows: 3;
+      }
+      h2, h3, h4 {
+        page-break-after: avoid;
+      }
+    }
+    p {
+      margin: 1em 0;
+    }
+    a {
+      color: #1a1a1a;
+    }
+    a:visited {
+      color: #1a1a1a;
+    }
+    img {
+      max-width: 100%;
+    }
+    svg {
+      height: auto;
+      max-width: 100%;
+    }
+    h1, h2, h3, h4, h5, h6 {
+      margin-top: 1.4em;
+    }
+    h5, h6 {
+      font-size: 1em;
+      font-style: italic;
+    }
+    h6 {
+      font-weight: normal;
+    }
+    ol, ul {
+      padding-left: 1.7em;
+      margin-top: 1em;
+    }
+    li > ol, li > ul {
+      margin-top: 0;
+    }
+    blockquote {
+      margin: 1em 0 1em 1.7em;
+      padding-left: 1em;
+      border-left: 2px solid #e6e6e6;
+      color: #606060;
+    }
+    code {
+      font-family: Menlo, Monaco, Consolas, 'Lucida Console', monospace;
+      font-size: 85%;
+      margin: 0;
+      hyphens: manual;
+    }
+    pre {
+      margin: 1em 0;
+      overflow: auto;
+    }
+    pre code {
+      padding: 0;
+      overflow: visible;
+      overflow-wrap: normal;
+    }
+    .sourceCode {
+     background-color: transparent;
+     overflow: visible;
+    }
+    hr {
+      background-color: #1a1a1a;
+      border: none;
+      height: 1px;
+      margin: 1em 0;
+    }
+    table {
+      margin: 1em 0;
+      border-collapse: collapse;
+      width: 100%;
+      overflow-x: auto;
+      display: block;
+      font-variant-numeric: lining-nums tabular-nums;
+    }
+    table caption {
+      margin-bottom: 0.75em;
+    }
+    tbody {
+      margin-top: 0.5em;
+      border-top: 1px solid #1a1a1a;
+      border-bottom: 1px solid #1a1a1a;
+    }
+    th {
+      border-top: 1px solid #1a1a1a;
+      padding: 0.25em 0.5em 0.25em 0.5em;
+    }
+    td {
+      padding: 0.125em 0.5em 0.25em 0.5em;
+    }
+    header {
+      margin-bottom: 4em;
+      text-align: center;
+    }
+    #TOC li {
+      list-style: none;
+    }
+    #TOC ul {
+      padding-left: 1.3em;
+    }
+    #TOC > ul {
+      padding-left: 0;
+    }
+    #TOC a:not(:hover) {
+      text-decoration: none;
+    }
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+    .display.math{display: block; text-align: center; margin: 0.5rem auto;}
+  </style>
+  <style>
+  :root { color-scheme: light; }
+  body { font: 17px/1.6 system-ui, sans-serif; color: #18273a; background: #fff; max-width: 850px; margin: 3rem auto; padding: 0 1.25rem; }
+  h1 { color: #103454; font-size: clamp(2rem, 5vw, 2.9rem); line-height: 1.15; border-bottom: 4px solid #16817a; padding-bottom: 1rem; }
+  h2 { color: #103454; margin-top: 2rem; line-height: 1.25; }
+  a { color: #005d84; }
+  table { border-collapse: collapse; width: 100%; margin: 1.25rem 0; }
+  th, td { text-align: left; padding: .55rem .7rem; border: 1px solid #cbd8e0; vertical-align: top; }
+  th { background: #e7f4f4; }
+  pre { background: #edf3f7; padding: 1rem; overflow: auto; }
+  </style>
+</head>
+<body>
+<h1 id="mining-energy-etl-and-forecasting">Mining Energy ETL and
+Forecasting</h1>
+<p>Build a daily electricity cost report for two simulated mining sites,
+then use the processed data to forecast electricity consumption in Azure
+Databricks.</p>
+<h2 id="know-the-workflow">1. Know the workflow</h2>
+<ul>
+<li><strong>Extract:</strong> Read meter readings and site tariffs from
+CSV files in a Unity Catalog volume.</li>
+<li><strong>Transform:</strong> Remove duplicates, record invalid rows
+with their rejection reasons, calculate cost in cents, and aggregate by
+date and site.</li>
+<li><strong>Load:</strong> Write the clean readings, rejected rows, and
+daily cost report to Delta tables.</li>
+<li><strong>Machine learning:</strong> Join the daily usage table with
+operating plans. Train and evaluate a Random Forest, then forecast
+electricity use for the next five days.</li>
+</ul>
+<h2 id="import-the-notebooks">2. Import the notebooks</h2>
+<p>Extract the ZIP on your computer. In your existing Azure Databricks
+workspace, open <strong>Workspace</strong>, create a personal project
+folder, and use its <strong>Import</strong> menu to import both files
+from the <strong>notebooks</strong> folder individually. Open
+<strong>01_mining_energy_etl</strong> and select
+<strong>Serverless</strong> in its compute selector.</p>
+<p>Check the <strong>CATALOG</strong> setting in the first code cell.
+The supplied value is <strong>dbw_sales_iman01</strong>. Use the same
+writable Unity Catalog catalog in both notebooks. Run only the first
+code cell in notebook 01. It creates the
+<strong>iman_energy_etl_lab</strong> schema and the
+<strong>incoming</strong> volume, then prints the volume path. You need
+permission to create the schema and volume.</p>
+<h2 id="run-the-small-etl-example">3. Run the small ETL example</h2>
+<p>In <strong>Catalog</strong>, open your catalog, then
+<strong>iman_energy_etl_lab → incoming</strong>. Use <strong>Upload
+files to a volume</strong> and upload
+<strong>data/meter_readings.csv</strong> and
+<strong>data/tariffs.csv</strong> directly into that volume.
+Alternatively, use <strong>File → Upload files to volume</strong> from a
+notebook and select the printed path.</p>
+<p>Keep <strong>USE_HISTORY = False</strong> and run the remaining cells
+of notebook 01 in order. Check the result at each stage.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Stage</th>
+<th>Expected result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Extract</td>
+<td>10 meter readings and 2 site tariffs</td>
+</tr>
+<tr class="even">
+<td>Transform</td>
+<td>6 accepted readings, 3 rejected readings, 1 duplicate removed</td>
+</tr>
+<tr class="odd">
+<td>Load</td>
+<td>6 rows in silver_energy_readings, 3 in rejected_energy_readings, 4
+in gold_daily_energy_cost</td>
+</tr>
+</tbody>
+</table>
+<p>For November 1 at NORTH, the 100 and 200 kWh readings total 300 kWh.
+At 20 cents per kWh, the cost is 6,000 cents or AUD 60. The four report
+rows sum to 1,300 kWh and AUD 320. Compare them with
+<strong>data/expected_daily.csv</strong>, which stores costs in
+cents.</p>
+<h2 id="prepare-the-historical-data">4. Prepare the historical data</h2>
+<p>Upload <strong>data/meter_history.csv</strong>,
+<strong>data/historical_plans.csv</strong>, and
+<strong>data/future_plans.csv</strong> to the same volume. Keep the
+original <strong>tariffs.csv</strong> there. Set <strong>USE_HISTORY =
+True</strong> in notebook 01 and run it from the top.</p>
+<p>The historical extract contains 226 readings. Expect 224 accepted
+readings, 1 rejection, and 1 duplicate removed. The resulting
+<strong>gold_daily_energy_cost</strong> table contains 112 rows, one for
+each site and date. Each run replaces the three ETL output tables in the
+practice schema. To restore the four-row report, switch back to sample
+mode and rerun notebook 01.</p>
+<h2 id="train-evaluate-and-forecast">5. Train, evaluate, and
+forecast</h2>
+<p>Open <strong>02_energy_forecast</strong> and attach Serverless. Run
+the first cell to install the pinned scikit-learn version. The
+environment needs Python 3.11 or later. If the install succeeds but the
+new package cannot be imported, restart Python in a fresh cell using
+<strong>dbutils.library.restartPython()</strong> and continue with the
+configuration cell. Run the remaining cells in order.</p>
+<p>The notebook matches the historical plans and actual usage by date
+and site. Model inputs are site, planned operating hours, load index,
+and forecast temperature. The target is daily electricity consumption in
+kWh. The October records train the model. The subsequent observed
+records evaluate it.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Checkpoint</th>
+<th>Expected result</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Training and evaluation</td>
+<td>62 training rows and 50 test rows</td>
+</tr>
+<tr class="even">
+<td>Mean absolute error on test data</td>
+<td>About 66 kWh for Random Forest and 296 kWh using each site’s October
+mean</td>
+</tr>
+<tr class="odd">
+<td>Forecast</td>
+<td>10 rows in gold_energy_forecast, covering two sites over five
+days</td>
+</tr>
+</tbody>
+</table>
+<p>MAE is the average size of the prediction error in kWh. The numbers
+above are from a local run on synthetic data. The future rows have no
+observed consumption, so the displayed MAE is calculated from the
+historical test period.</p>
+<h2 id="find-your-results">6. Find your results</h2>
+<p>Open <strong>Catalog → your catalog → iman_energy_etl_lab →
+Tables</strong>. The table <strong>gold_daily_energy_cost</strong> shows
+recorded consumption and calculated cost.
+<strong>gold_energy_forecast</strong> shows predicted consumption. The
+final output cell in each notebook also displays its report.</p>
+<p>If you see a missing file error, confirm the filename and volume
+path. If notebook 02 asks for history mode, run notebook 01 with
+USE_HISTORY set to True and check for 112 daily rows before
+retrying.</p>
+<p>Continue with <a href="CI_GUIDE.html">CI_GUIDE.html</a> to run the
+automated checks in GitHub Actions.</p>
+<p>References: <a
+href="https://learn.microsoft.com/en-us/azure/databricks/notebooks/notebook-export-import">Import
+notebooks</a> · <a
+href="https://learn.microsoft.com/en-us/azure/databricks/volumes/volume-files">Upload
+volume files</a> · <a
+href="https://learn.microsoft.com/en-us/azure/databricks/libraries/notebooks-python-libraries">Notebook
+Python libraries</a></p>
+</body>
+</html>
